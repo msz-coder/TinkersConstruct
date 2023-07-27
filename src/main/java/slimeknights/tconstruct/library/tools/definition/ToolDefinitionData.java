@@ -107,6 +107,13 @@ public class ToolDefinitionData {
     return getModules().getOrDefault(hook);
   }
 
+  /** Gets the value of a stat in this tool, or the default value if missing */
+  public <T extends Number> T getStatOrDefault(IToolStat<T> toolStat, T defaultValue) {
+    if (stats != null && stats.getBase().hasStat(toolStat)) {
+      return stats.getBase().get(toolStat);
+    }
+    return defaultValue;
+  }
 
   /* Stats */
 
