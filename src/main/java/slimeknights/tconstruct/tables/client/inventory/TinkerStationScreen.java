@@ -57,15 +57,22 @@ import java.util.stream.Collectors;
 
 import static slimeknights.tconstruct.tables.block.entity.table.TinkerStationBlockEntity.INPUT_SLOT;
 import static slimeknights.tconstruct.tables.block.entity.table.TinkerStationBlockEntity.TINKER_SLOT;
+import static slimeknights.tconstruct.tables.client.inventory.TinkerStationHelper.needsDisplayUpdate;
 
 public class TinkerStationScreen extends BaseTabbedScreen<TinkerStationBlockEntity,TinkerStationContainerMenu> {
+
+  public static ResourceLocation getTinkerStationTexture() {
+    return TINKER_STATION_TEXTURE;
+  }
+
+  private TinkerStationHelper stationHelper;
   // titles to display
-  private static final Component COMPONENTS_TEXT = TConstruct.makeTranslation("gui", "tinker_station.components");
-  private static final Component MODIFIERS_TEXT = TConstruct.makeTranslation("gui", "tinker_station.modifiers");
-  private static final Component UPGRADES_TEXT = TConstruct.makeTranslation("gui", "tinker_station.upgrades");
-  private static final Component TRAITS_TEXT = TConstruct.makeTranslation("gui", "tinker_station.traits");
+   static final Component COMPONENTS_TEXT = TConstruct.makeTranslation("gui", "tinker_station.components");
+  public static final Component MODIFIERS_TEXT = TConstruct.makeTranslation("gui", "tinker_station.modifiers");
+  public static final Component UPGRADES_TEXT = TConstruct.makeTranslation("gui", "tinker_station.upgrades");
+  public static final Component TRAITS_TEXT = TConstruct.makeTranslation("gui", "tinker_station.traits");
   // fallback text for crafting with no named slots
-  private static final Component ASCII_ANVIL = new TextComponent("\n\n")
+  public static final Component ASCII_ANVIL = new TextComponent("\n\n")
     .append("       .\n")
     .append("     /( _________\n")
     .append("     |  >:=========`\n")
@@ -74,9 +81,9 @@ public class TinkerStationScreen extends BaseTabbedScreen<TinkerStationBlockEnti
     .withStyle(ChatFormatting.DARK_GRAY);
 
   // parameters to display the still filled slots when changing layout
-  private static final int STILL_FILLED_X = 112;
-  private static final int STILL_FILLED_Y = 62;
-  private static final int STILL_FILLED_SPACING = 18;
+  public static final int STILL_FILLED_X = 112;
+  public static final int STILL_FILLED_Y = 62;
+  public static final int STILL_FILLED_SPACING = 18;
 
   // texture
   private static final ResourceLocation TINKER_STATION_TEXTURE = TConstruct.getResource("textures/gui/tinker_station.png");
@@ -115,23 +122,23 @@ public class TinkerStationScreen extends BaseTabbedScreen<TinkerStationBlockEnti
   private final StationSlotLayout defaultLayout;
   /** Currently selected tool */
   @Nonnull @Getter
-  private StationSlotLayout currentLayout;
+  public StationSlotLayout currentLayout;
 
   // components
-  protected EditBox textField;
+  public EditBox textField;
   protected InfoPanelScreen tinkerInfo;
-  protected InfoPanelScreen modifierInfo;
+  public  InfoPanelScreen modifierInfo;
   protected TinkerStationButtonsWidget buttonsScreen;
 
   /** Maximum available slots */
   @Getter
-  private final int maxInputs;
+  public final int maxInputs;
   /** How many of the available input slots are active */
   protected int activeInputs;
 
   public TinkerStationScreen(TinkerStationContainerMenu container, Inventory playerInventory, Component title) {
     super(container, playerInventory, title);
-
+    this.stationHelper = new TinkerStationHelper(this);
     this.tinkerInfo = new InfoPanelScreen(this, container, playerInventory, title);
     this.tinkerInfo.setTextScale(8/9f);
     this.addModule(this.tinkerInfo);
@@ -218,166 +225,7 @@ public class TinkerStationScreen extends BaseTabbedScreen<TinkerStationBlockEnti
     this.buttonsScreen = new TinkerStationButtonsWidget(this, this.cornerX - TinkerStationButtonsWidget.width(COLUMN_COUNT) - 2,
       this.cornerY + this.centerBeam.h + this.buttonDecorationTop.h, layouts, buttonsStyle);
 
-    this.updateLayout();
-  }
-
-  /** Updates all slots for the current slot layout */
-  public void updateLayout() {
-    int stillFilled = 0;
-    for (int i = 0; i <= maxInputs; i++) {
-      Slot slot = this.getMenu().getSlot(i);
-      LayoutSlot layoutSlot = currentLayout.getSlot(i);
-      if (layoutSlot.isHidden()) {
-        // put the position in the still filled line
-        slot.x = STILL_FILLED_X - STILL_FILLED_SPACING * stillFilled;
-        slot.y = STILL_FILLED_Y;
-        stillFilled++;
-        if (slot instanceof TinkerStationSlot tinkerSlot) {
-          tinkerSlot.deactivate();
-        }
-      } else {
-        slot.x = layoutSlot.getX();
-        slot.y = layoutSlot.getY();
-        if (slot instanceof TinkerStationSlot tinkerSlot) {
-          tinkerSlot.activate(layoutSlot);
-        }
-      }
-    }
-
-    this.updateDisplay();
-  }
-
-  /** Updates the tool panel area */
-  static void updateToolPanel(InfoPanelScreen tinkerInfo, ToolStack tool, ItemStack result) {
-    if (tool.getItem() instanceof ITinkerStationDisplay display) {
-      tinkerInfo.setCaption(display.getLocalizedName());
-      tinkerInfo.setText(display.getStatInformation(tool, Minecraft.getInstance().player, new ArrayList<>(), SafeClientAccess.getTooltipKey(), TinkerTooltipFlags.TINKER_STATION));
-    }
-    else {
-      tinkerInfo.setCaption(result.getHoverName());
-      List<Component> list = new ArrayList<>();
-      result.getItem().appendHoverText(result, Minecraft.getInstance().level, list, Default.NORMAL);
-      tinkerInfo.setText(list);
-    }
-  }
-
-  /** Updates the modifier panel with relevant info */
-  static void updateModifierPanel(InfoPanelScreen modifierInfo, ToolStack tool) {
-    List<Component> modifierNames = new ArrayList<>();
-    List<Component> modifierTooltip = new ArrayList<>();
-    Component title;
-    // control displays just traits, bit trickier to do
-    if (hasControlDown()) {
-      title = TRAITS_TEXT;
-      Map<Modifier,Integer> upgrades = tool.getUpgrades().getModifiers().stream()
-                                           .collect(Collectors.toMap(ModifierEntry::getModifier, ModifierEntry::getLevel));
-      for (ModifierEntry entry : tool.getModifierList()) {
-        Modifier mod = entry.getModifier();
-        if (mod.shouldDisplay(true)) {
-          int level = entry.getLevel() - upgrades.getOrDefault(mod, 0);
-          if (level > 0) {
-            modifierNames.add(mod.getDisplayName(tool, level));
-            modifierTooltip.add(mod.getDescription(tool, level));
-          }
-        }
-      }
-    } else {
-      // shift is just upgrades/abilities, otherwise all
-      List<ModifierEntry> modifiers;
-      if (hasShiftDown()) {
-        modifiers = tool.getUpgrades().getModifiers();
-        title = UPGRADES_TEXT;
-      } else {
-        modifiers = tool.getModifierList();
-        title = MODIFIERS_TEXT;
-      }
-      for (ModifierEntry entry : modifiers) {
-        Modifier mod = entry.getModifier();
-        if (mod.shouldDisplay(true)) {
-          int level = entry.getLevel();
-          modifierNames.add(mod.getDisplayName(tool, level));
-          modifierTooltip.add(mod.getDescription(tool, level));
-        }
-      }
-    }
-
-    modifierInfo.setCaption(title);
-    modifierInfo.setText(modifierNames, modifierTooltip);
-  }
-
-  @Override
-  public void updateDisplay() {
-    if (this.tile == null) {
-      return;
-    }
-
-    ItemStack toolStack = this.getMenu().getResult();
-
-    // if we have a message, display instead of refreshing the tool
-    ValidatedResult currentError = tile.getCurrentError();
-    if (currentError.hasError()) {
-      error(currentError.getMessage());
-      return;
-    }
-
-    // only get to rename new tool in the station
-    // anvil can rename on any tool change
-    if (toolStack.isEmpty() || (tile.getInputCount() <= 4 && this.getMenu().getSlot(TINKER_SLOT).hasItem())) {
-      textField.setEditable(false);
-      textField.setValue("");
-      textField.visible = false;
-    } else if (!textField.isEditable()) {
-      textField.setEditable(true);
-      textField.setValue("");
-      textField.visible = true;
-    } else {
-      // ensure the text matches
-      textField.setValue(tile.getItemName());
-    }
-
-    // normal refresh
-    if (toolStack.isEmpty()) {
-      toolStack = this.getMenu().getSlot(TINKER_SLOT).getItem();
-    }
-
-    // if the contained stack is modifiable, display some information
-    if (toolStack.is(TinkerTags.Items.MODIFIABLE)) {
-      ToolStack tool = ToolStack.from(toolStack);
-      updateToolPanel(tinkerInfo, tool, toolStack);
-      updateModifierPanel(modifierInfo, tool);
-    }
-    // tool build info
-    else {
-      this.tinkerInfo.setCaption(this.currentLayout.getDisplayName());
-      this.tinkerInfo.setText(this.currentLayout.getDescription());
-
-      // for each named slot, color the slot if the slot is filled
-      // typically all input slots should be named, or none of them
-      MutableComponent fullText = new TextComponent("");
-      boolean hasComponents = false;
-      for (int i = 0; i <= activeInputs; i++) {
-        LayoutSlot layout = currentLayout.getSlot(i);
-        String key = layout.getTranslationKey();
-        if (!layout.isHidden() && !key.isEmpty()) {
-          hasComponents = true;
-          MutableComponent textComponent = new TextComponent(" * ");
-          ItemStack slotStack = this.getMenu().getSlot(i).getItem();
-          if (!layout.isValid(slotStack)) {
-            textComponent.withStyle(ChatFormatting.RED);
-          }
-          textComponent.append(new TranslatableComponent(key)).append("\n");
-          fullText.append(textComponent);
-        }
-      }
-      // if we found any components, set the text, use the anvil if no components
-      if (hasComponents) {
-        this.modifierInfo.setCaption(COMPONENTS_TEXT);
-        this.modifierInfo.setText(fullText);
-      } else {
-        this.modifierInfo.setCaption(TextComponent.EMPTY);
-        this.modifierInfo.setText(ASCII_ANVIL);
-      }
-    }
+    stationHelper.updateLayout();
   }
 
   @Override
@@ -514,7 +362,7 @@ public class TinkerStationScreen extends BaseTabbedScreen<TinkerStationBlockEnti
     if (this.modifierInfo.handleMouseClicked(mouseX, mouseY, mouseButton)) {
       return false;
     }
-    
+
     if(this.buttonsScreen.handleMouseClicked(mouseX, mouseY, mouseButton)) {
       return false;
     }
@@ -565,16 +413,6 @@ public class TinkerStationScreen extends BaseTabbedScreen<TinkerStationBlockEnti
     return super.mouseReleased(mouseX, mouseY, state);
   }
 
-  /** Returns true if a key changed that requires a display update */
-  static boolean needsDisplayUpdate(int keyCode) {
-    if (keyCode == GLFW.GLFW_KEY_LEFT_SHIFT || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT) {
-      return true;
-    }
-    if (Minecraft.ON_OSX) {
-      return keyCode == GLFW.GLFW_KEY_LEFT_SUPER || keyCode == GLFW.GLFW_KEY_RIGHT_SUPER;
-    }
-    return keyCode == GLFW.GLFW_KEY_LEFT_CONTROL || keyCode == GLFW.GLFW_KEY_RIGHT_CONTROL;
-  }
 
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
@@ -583,7 +421,7 @@ public class TinkerStationScreen extends BaseTabbedScreen<TinkerStationBlockEnti
       return true;
     }
     if (needsDisplayUpdate(keyCode)) {
-      updateDisplay();
+      stationHelper.updateDisplay();
     }
     if (textField.canConsumeInput()) {
       textField.keyPressed(keyCode, scanCode, modifiers);
@@ -595,7 +433,7 @@ public class TinkerStationScreen extends BaseTabbedScreen<TinkerStationBlockEnti
   @Override
   public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
     if (needsDisplayUpdate(keyCode)) {
-      updateDisplay();
+      stationHelper.updateDisplay();
     }
     return super.keyReleased(keyCode, scanCode, modifiers);
   }
@@ -645,35 +483,7 @@ public class TinkerStationScreen extends BaseTabbedScreen<TinkerStationBlockEnti
     this.centerBeam = CENTER_BEAM.shift(0, CENTER_BEAM.h);
   }
 
-  @Override
-  public void error(Component message) {
-    this.tinkerInfo.setCaption(COMPONENT_ERROR);
-    this.tinkerInfo.setText(message);
-    this.modifierInfo.setCaption(TextComponent.EMPTY);
-    this.modifierInfo.setText(TextComponent.EMPTY);
-  }
 
-  @Override
-  public void warning(Component message) {
-    this.tinkerInfo.setCaption(COMPONENT_WARNING);
-    this.tinkerInfo.setText(message);
-    this.modifierInfo.setCaption(TextComponent.EMPTY);
-    this.modifierInfo.setText(TextComponent.EMPTY);
-  }
-
-  /**
-   * Called when a tool button is pressed
-   * @param layout      Data of the slot selected
-   */
-  public void onToolSelection(StationSlotLayout layout) {
-    this.activeInputs = Math.min(layout.getInputCount(), maxInputs);
-    this.currentLayout = layout;
-    this.updateLayout();
-
-    // update the active slots and filter in the container
-    // this.container.setToolSelection(layout); TODO: needed?
-    TinkerNetwork.getInstance().sendToServer(new TinkerStationSelectionPacket(layout.getName()));
-  }
 
   @Override
   public List<Rect2i> getModuleAreas() {
@@ -726,3 +536,5 @@ public class TinkerStationScreen extends BaseTabbedScreen<TinkerStationBlockEnti
     this.minecraft.keyboardHandler.setSendRepeatsToGui(false);
   }
 }
+
+

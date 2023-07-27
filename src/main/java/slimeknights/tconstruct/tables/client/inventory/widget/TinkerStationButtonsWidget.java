@@ -3,6 +3,7 @@ package slimeknights.tconstruct.tables.client.inventory.widget;
 import net.minecraft.client.gui.components.Button;
 import slimeknights.tconstruct.library.client.Icons;
 import slimeknights.tconstruct.library.tools.layout.StationSlotLayout;
+import slimeknights.tconstruct.tables.client.inventory.TinkerStationHelper;
 import slimeknights.tconstruct.tables.client.inventory.TinkerStationScreen;
 
 import java.util.List;
@@ -11,6 +12,7 @@ public class TinkerStationButtonsWidget extends SideButtonsWidget<SlotButtonItem
 
   public static final int WOOD_STYLE = 2;
   public static final int METAL_STYLE = 1;
+
 
   public TinkerStationButtonsWidget(TinkerStationScreen parent, int leftPos, int topPos, List<StationSlotLayout> layouts, int style) {
     super(parent, leftPos, topPos, TinkerStationScreen.COLUMN_COUNT, rowsForCount(TinkerStationScreen.COLUMN_COUNT, layouts.size()),
@@ -23,7 +25,8 @@ public class TinkerStationButtonsWidget extends SideButtonsWidget<SlotButtonItem
       }
       if (self instanceof SlotButtonItem slotInformationButton) {
         slotInformationButton.pressed = true;
-        parent.onToolSelection(slotInformationButton.getLayout());
+        TinkerStationHelper helper = new TinkerStationHelper(parent);
+        helper.onToolSelectionInternal(slotInformationButton.getLayout());
       }
     };
 

@@ -254,11 +254,17 @@ public class MaterialManager extends SimpleJsonResourceReloadListener {
       boolean isCraftable = Boolean.TRUE.equals(materialJson.getCraftable());
       boolean hidden = Boolean.TRUE.equals(materialJson.getHidden());
 
-      // parse trait
-      return new Material(materialId, requireNonNullElse(materialJson.getTier(), 0), requireNonNullElse(materialJson.getSortOrder(), 100), isCraftable, hidden);
+      // Create a MaterialBuilder and use it to construct the Material instance
+      Material.MaterialBuilder builder = new Material.MaterialBuilder(materialId)
+        .tier(requireNonNullElse(materialJson.getTier(), 0))
+        .sortOrder(requireNonNullElse(materialJson.getSortOrder(), 100))
+        .craftable(isCraftable)
+        .hidden(hidden);
+      return builder.build();
     } catch (Exception e) {
       log.error("Could not deserialize material {}. JSON: {}", materialId, jsonObject, e);
       return null;
     }
   }
+
 }

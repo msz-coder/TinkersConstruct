@@ -13,7 +13,10 @@ public interface IMaterial extends Comparable<IMaterial> {
    * <p>
    * The fallback material needs to have all part types associated with it.
    */
-  IMaterial UNKNOWN = new Material(UNKNOWN_ID, false, true);
+  IMaterial UNKNOWN = new Material.MaterialBuilder(UNKNOWN_ID)
+    .craftable(false)
+    .hidden(true)
+    .build();
 
   /**
    * Used to identify the material in NBT and other constructs.
@@ -30,7 +33,6 @@ public interface IMaterial extends Comparable<IMaterial> {
 
   /** If true, this material is hidden from display, such as in JEI and the books */
   boolean isHidden();
-
 
   /* Display */
 

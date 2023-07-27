@@ -29,20 +29,52 @@ public class Material implements IMaterial {
    * Materials should only be created by the MaterialManager, except when used for data gen
    * They're synced over the network and other classes might lead to unexpected behaviour.
    */
-  public Material(ResourceLocation identifier, int tier, int order, boolean craftable, boolean hidden) {
-    this.identifier = new MaterialId(identifier);
-    this.tier = tier;
-    this.sortOrder = order;
-    this.craftable = craftable;
-    this.hidden = hidden;
-  }
-
-  protected Material(ResourceLocation identifier, boolean craftable, boolean hidden) {
-    this(identifier, 0, -1, craftable, hidden);
+  public Material(MaterialBuilder builder) {
+    this.identifier = builder.identifier;
+    this.tier = builder.tier;
+    this.sortOrder = builder.sortOrder;
+    this.craftable = builder.craftable;
+    this.hidden = builder.hidden;
   }
 
   @Override
   public String toString() {
     return "Material{" + identifier + '}';
+  }
+
+  public static class MaterialBuilder {
+    private final MaterialId identifier;
+    private int tier = 0;
+    private int sortOrder = -1;
+    private boolean craftable = false;
+    private boolean hidden = false;
+
+    public MaterialBuilder(ResourceLocation identifier) {
+      this.identifier = new MaterialId(identifier);
+    }
+
+    public MaterialBuilder tier(int tier) {
+      this.tier = tier;
+      return this;
+    }
+
+    public MaterialBuilder sortOrder(int sortOrder) {
+      this.sortOrder = sortOrder;
+      return this;
+    }
+
+    public MaterialBuilder craftable(boolean craftable) {
+      this.craftable = craftable;
+      return this;
+    }
+
+    public MaterialBuilder hidden(boolean hidden) {
+      this.hidden = hidden;
+      return this;
+    }
+
+    public Material build() {
+      return new Material(this);
+    }
   }
 }

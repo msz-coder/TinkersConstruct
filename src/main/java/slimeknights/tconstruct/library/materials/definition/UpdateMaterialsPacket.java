@@ -24,7 +24,7 @@ public class UpdateMaterialsPacket implements IThreadsafePacket {
 
   public UpdateMaterialsPacket(FriendlyByteBuf buffer) {
     int materialCount = buffer.readInt();
-    ImmutableMap.Builder<MaterialId,IMaterial> materials = ImmutableMap.builder();
+    ImmutableMap.Builder<MaterialId, IMaterial> materials = ImmutableMap.builder();
 
     for (int i = 0; i < materialCount; i++) {
       MaterialId id = new MaterialId(buffer.readResourceLocation());
@@ -32,7 +32,15 @@ public class UpdateMaterialsPacket implements IThreadsafePacket {
       int sortOrder = buffer.readVarInt();
       boolean craftable = buffer.readBoolean();
       boolean hidden = buffer.readBoolean();
-      materials.put(id, new Material(id, tier, sortOrder, craftable, hidden));
+
+      // Create a MaterialBuilder and use it to construct the Material instance
+      Material.MaterialBuilder builder = new Material.MaterialBuilder(id)
+        .tier(tier)
+        .sortOrder(sortOrder)
+        .craftable(craftable)
+        .hidden(hidden);
+
+      materials.put(id, builder.build());
     }
     this.materials = materials.build();
     // process redirects

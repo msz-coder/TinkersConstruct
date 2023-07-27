@@ -217,51 +217,74 @@ public class ToolClientEvents extends ClientEventBase {
   /** If true, we were interacting with leggings last tick */
   private static boolean wasLeggingsInteracting = false;
 
-  /** Called on player tick to handle keybinding presses */
-  private static void handleKeyBindings(PlayerTickEvent event) {
+  @SubscribeEvent
+  static void handleKeyBindings(PlayerTickEvent event) {
     Minecraft minecraft = Minecraft.getInstance();
     if (minecraft.player != null && minecraft.player == event.player && event.phase == Phase.START && event.side == LogicalSide.CLIENT && !minecraft.player.isSpectator()) {
+      handleDoubleJump();
+      handleHelmetInteraction();
+      handleLeggingsInteraction();
+    }
+  }
 
-      // jumping in mid air for double jump
-      // ensure we pressed the key since the last tick, holding should not use all your jumps at once
-      boolean isJumping = minecraft.options.keyJump.isDown();
-      if (!wasJumping && isJumping) {
-        if (DoubleJumpModifier.extraJump(event.player)) {
-          TinkerNetwork.getInstance().sendToServer(TinkerControlPacket.DOUBLE_JUMP);
-        }
-      }
-      wasJumping = isJumping;
+  private static void handleDoubleJump() {
+    Minecraft minecraft = Minecraft.getInstance();
+    boolean isJumping = minecraft.options.keyJump.isDown();
 
-      // helmet interaction
-      boolean isHelmetInteracting = HELMET_INTERACT.isDown();
-      if (!wasHelmetInteracting && isHelmetInteracting) {
-        TooltipKey key = SafeClientAccess.getTooltipKey();
-        if (InteractionHandler.startArmorInteract(event.player, EquipmentSlot.HEAD, key)) {
-          TinkerNetwork.getInstance().sendToServer(TinkerControlPacket.getStartHelmetInteract(key));
-        }
-      }
-      if (wasHelmetInteracting && !isHelmetInteracting) {
-        if (InteractionHandler.stopArmorInteract(event.player, EquipmentSlot.HEAD)) {
-          TinkerNetwork.getInstance().sendToServer(TinkerControlPacket.STOP_HELMET_INTERACT);
-        }
-      }
+    // If we pressed the key since the last tick and have the DoubleJumpModifier, send the double jump packet
+    if (!wasJumping && isJumping && DoubleJumpModifier.extraJump(minecraft.player)) {
+      TinkerNetwork.getInstance().sendToServer(TinkerControlPacket.DOUBLE_JUMP);
+    }
 
-      // leggings interaction
-      boolean isLeggingsInteract = LEGGINGS_INTERACT.isDown();
-      if (!wasLeggingsInteracting && isLeggingsInteract) {
-        TooltipKey key = SafeClientAccess.getTooltipKey();
-        if (InteractionHandler.startArmorInteract(event.player, EquipmentSlot.LEGS, key)) {
-          TinkerNetwork.getInstance().sendToServer(TinkerControlPacket.getStartLeggingsInteract(key));
-        }
-      }
-      if (wasLeggingsInteracting && !isLeggingsInteract) {
-        if (InteractionHandler.stopArmorInteract(event.player, EquipmentSlot.LEGS)) {
-          TinkerNetwork.getInstance().sendToServer(TinkerControlPacket.STOP_LEGGINGS_INTERACT);
-        }
-      }
+    wasJumping = isJumping;
+  }
 
-      wasHelmetInteracting = isHelmetInteracting;
-      wasLeggingsInteracting = isLeggingsInteract;
+  private static void handleHelmetInteraction() {
+    boolean isHelmetInteracting = HELMET_INTERACT.isDown();
+
+    // If the key was pressed since the last tick, start or stop the helmet interaction accordingly
+    if (!wasHelmetInteracting && isHelmetInteracting) {
+      handleArmorInteract(EquipmentSlot.HEAD);
+    } else if (wasHelmetInteracting && !isHelmetInteracting) {
+      stopArmorInteract(EquipmentSlot.HEAD);
+    }
+
+    wasHelmetInteracting = isHelmetInteracting;
+  }
+
+  private static void handleLeggingsInteraction() {
+    boolean isLeggingsInteract = LEGGINGS_INTERACT.isDown();
+
+    // If the key was pressed since the last tick, start or stop the leggings interaction accordingly
+    if (!wasLeggingsInteracting && isLeggingsInteract) {
+      handleArmorInteract(EquipmentSlot.LEGS);
+    } else if (wasLeggingsInteracting && !isLeggingsInteract) {
+      stopArmorInteract(EquipmentSlot.LEGS);
+    }
+
+    wasLeggingsInteracting = isLeggingsInteract;
+  }
+
+  private static void handleArmorInteract(EquipmentSlot slot) {
+    Player player = Minecraft.getInstance().player;
+    TooltipKey key = SafeClientAccess.getTooltipKey();
+    if (InteractionHandler.startArmorInteract(player, slot, key)) {
+      if (slot == EquipmentSlot.HEAD) {
+        TinkerNetwork.getInstance().sendToServer(TinkerControlPacket.getStartHelmetInteract(key));
+      } else if (slot == EquipmentSlot.LEGS) {
+        TinkerNetwork.getInstance().sendToServer(TinkerControlPacket.getStartLeggingsInteract(key));
+      }
+    }
+  }
+
+  private static void stopArmorInteract(EquipmentSlot slot) {
+    Player player = Minecraft.getInstance().player;
+    if (InteractionHandler.stopArmorInteract(player, slot)) {
+      if (slot == EquipmentSlot.HEAD) {
+        TinkerNetwork.getInstance().sendToServer(TinkerControlPacket.STOP_HELMET_INTERACT);
+      } else if (slot == EquipmentSlot.LEGS) {
+        TinkerNetwork.getInstance().sendToServer(TinkerControlPacket.STOP_LEGGINGS_INTERACT);
+      }
     }
   }
 

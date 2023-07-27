@@ -21,10 +21,22 @@ class UpdateMaterialPacketTest extends BaseMcTest {
 
   @Test
   void testGenericEncodeDecode() {
-    IMaterial material1 = new Material(MATERIAL_ID_1, 1, 2, true, false);
-    IMaterial material2 = new Material(MATERIAL_ID_2, 3, 4, false, true);
-    Map<MaterialId,IMaterial> materials = ImmutableMap.of(MATERIAL_ID_1, material1, MATERIAL_ID_2, material2);
-    Map<MaterialId,MaterialId> redirects = ImmutableMap.of(REDIRECT_ID, MATERIAL_ID_1);
+    Material.MaterialBuilder materialBuilder1 = new Material.MaterialBuilder(MATERIAL_ID_1)
+      .tier(1)
+      .sortOrder(2)
+      .craftable(true)
+      .hidden(false);
+    IMaterial material1 = materialBuilder1.build();
+
+    Material.MaterialBuilder materialBuilder2 = new Material.MaterialBuilder(MATERIAL_ID_2)
+      .tier(3)
+      .sortOrder(4)
+      .craftable(false)
+      .hidden(true);
+    IMaterial material2 = materialBuilder2.build();
+
+    Map<MaterialId, IMaterial> materials = ImmutableMap.of(MATERIAL_ID_1, material1, MATERIAL_ID_2, material2);
+    Map<MaterialId, MaterialId> redirects = ImmutableMap.of(REDIRECT_ID, MATERIAL_ID_1);
 
     // send a packet over the buffer
     FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
@@ -33,7 +45,7 @@ class UpdateMaterialPacketTest extends BaseMcTest {
     UpdateMaterialsPacket decoded = new UpdateMaterialsPacket(buffer);
 
     // parse results
-    Map<MaterialId,IMaterial> parsed = decoded.getMaterials();
+    Map<MaterialId, IMaterial> parsed = decoded.getMaterials();
     assertThat(parsed).hasSize(2);
 
     // material 1
@@ -54,7 +66,7 @@ class UpdateMaterialPacketTest extends BaseMcTest {
     assertThat(parsedMat.isHidden()).isTrue();
 
     // redirects not included
-    Map<MaterialId,MaterialId> decodedRedirects = decoded.getRedirects();
+    Map<MaterialId, MaterialId> decodedRedirects = decoded.getRedirects();
     assertThat(decodedRedirects).hasSize(1);
     assertThat(decodedRedirects.get(REDIRECT_ID)).isEqualTo(MATERIAL_ID_1);
   }

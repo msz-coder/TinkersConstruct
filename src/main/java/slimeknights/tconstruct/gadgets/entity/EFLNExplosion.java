@@ -28,7 +28,7 @@ import java.util.Collections;
 
 public class EFLNExplosion extends Explosion {
 
-  protected ImmutableSet<BlockPos> affectedBlockPositionsInternal;
+  protected ImmutableSet<BlockPos> affectedBlockPositions;
 
   public EFLNExplosion(Level world, @Nullable Entity entity, @Nullable DamageSource damage, @Nullable ExplosionDamageCalculator context, double x, double y, double z, float size, boolean causesFire, Explosion.BlockInteraction mode) {
     super(world, entity, damage, context, x, y, z, size, causesFire, mode);
@@ -77,7 +77,7 @@ public class EFLNExplosion extends Explosion {
       }
     }
 
-    this.affectedBlockPositionsInternal = builder.build();
+    this.affectedBlockPositions = builder.build();
   }
 
   @Override

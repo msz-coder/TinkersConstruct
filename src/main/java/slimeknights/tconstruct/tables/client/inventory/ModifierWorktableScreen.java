@@ -199,12 +199,12 @@ public class ModifierWorktableScreen extends BaseTabbedScreen<ModifierWorktableB
 
       // reuse logic from tinker station for final result
       ItemStack resultStack = getMenu().getOutputSlot().getItem();
-      TinkerStationScreen.updateToolPanel(tinkerInfo, result, resultStack);
+      TinkerStationHelper.updateToolPanel(tinkerInfo, result, resultStack);
 
       this.modifierInfo.setCaption(TextComponent.EMPTY);
       this.modifierInfo.setText(TextComponent.EMPTY);
       if (result.hasTag(TinkerTags.Items.MODIFIABLE)) {
-        TinkerStationScreen.updateModifierPanel(modifierInfo, result);
+        TinkerStationHelper.updateModifierPanel(modifierInfo, result);
       } else {
         // modifier crystals can show their modifier, along with anything else with a modifier there
         ModifierId modifierId = ModifierCrystalItem.getModifier(resultStack);
@@ -336,7 +336,7 @@ public class ModifierWorktableScreen extends BaseTabbedScreen<ModifierWorktableB
 
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    if (TinkerStationScreen.needsDisplayUpdate(keyCode)) {
+    if (TinkerStationHelper.needsDisplayUpdate(keyCode)) {
       updateDisplay();
     }
     return super.keyPressed(keyCode, scanCode, modifiers);
@@ -344,7 +344,7 @@ public class ModifierWorktableScreen extends BaseTabbedScreen<ModifierWorktableB
 
   @Override
   public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-    if (TinkerStationScreen.needsDisplayUpdate(keyCode)) {
+    if (TinkerStationHelper.needsDisplayUpdate(keyCode)) {
       updateDisplay();
     }
     return super.keyReleased(keyCode, scanCode, modifiers);

@@ -118,7 +118,13 @@ public abstract class AbstractMaterialDataProvider extends GenericDataProvider {
 
   /** Creates a normal material with a condition and a redirect */
   protected void addMaterial(MaterialId location, int tier, int order, boolean craftable, boolean hidden, @Nullable ICondition condition, JsonRedirect... redirect) {
-    addMaterial(new Material(location, tier, order, craftable, hidden), condition, redirect);
+    Material.MaterialBuilder builder = new Material.MaterialBuilder(location)
+      .tier(tier)
+      .sortOrder(order)
+      .craftable(craftable)
+      .hidden(hidden);
+    Material material = builder.build();
+    addMaterial(material, condition, redirect);
   }
 
   /** Creates a normal material */
